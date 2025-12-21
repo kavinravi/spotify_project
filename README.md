@@ -36,3 +36,7 @@ A GitHub Actions workflow runs every 6 hours to reshuffle the playlist automatic
 
 Built with Python using the Spotipy library for Spotify API access. The automation runs on GitHub Actions using OAuth tokens stored as repository secrets. The weighted sampling algorithm handles edge cases like preventing consecutive plays of the same track and ensuring the pool eventually empties to a target length.
 
+## Important Edits
+
+After running it a few times, I realized that changing the *original* playlist to the shuffled version w/ duplicates (simulating "weights") was annoying because if I ever wanted to add new songs to the playlist, I would effectively be adding new songs to the *weighted* playlist. To combat this issue, I modified it such that it now takes the original playlist, without duplicates, and uses that to create a new, *weighted* playlist based on all the songs from the original playlist. Now, I can add songs to the original playlist, favorites playlist, and favorite playlist and the reshuffle (whether scheduled or manual) will automatically take those into effect in editing the new playlist, without polluting the original. 
+
