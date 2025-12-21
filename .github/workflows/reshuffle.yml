@@ -29,7 +29,9 @@ jobs:
           echo "SPOTIPY_REDIRECT_URI=${{ secrets.SPOTIPY_REDIRECT_URI }}" >> .env
       
       - name: Setup Spotify token cache
-        run: echo '${{ secrets.SPOTIPY_CACHE }}' > .cache
+        env:
+          SPOTIPY_CACHE: ${{ secrets.SPOTIPY_CACHE }}
+        run: printf '%s' "$SPOTIPY_CACHE" > .cache
       
       - name: Run reshuffle script
         run: python main.py

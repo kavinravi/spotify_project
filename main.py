@@ -3,8 +3,17 @@ from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 import os
 import random
+import sys
 
 load_dotenv()
+
+print("Script starting...", flush=True)
+print(f"Cache file exists: {os.path.exists('.cache')}", flush=True)
+if os.path.exists('.cache'):
+    with open('.cache', 'r') as f:
+        content = f.read()
+        print(f"Cache content length: {len(content)}", flush=True)
+        print(f"Cache starts with: {content[:50]}...", flush=True)
 
 MAIN_PLAYLIST = "June 2025+ Allstars"
 FAVORITES_PLAYLIST = "Favorites"
@@ -103,9 +112,11 @@ def reorder_playlist(sp, playlist_id, uris):
 
 
 def main():
+    print("Creating Spotify client...", flush=True)
     sp = get_spotify_client()
+    print("Client created, fetching user...", flush=True)
     user = sp.current_user()
-    print(f"Authenticated as: {user['display_name']}")
+    print(f"Authenticated as: {user['display_name']}", flush=True)
 
     # Debug: show all playlist names
     playlists = sp.current_user_playlists(limit=50)
