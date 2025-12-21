@@ -33,4 +33,5 @@ jobs:
       
       - name: Run reshuffle script
         run: python main.py
+        timeout-minutes: 2
 

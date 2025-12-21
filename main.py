@@ -18,7 +18,8 @@ def get_spotify_client():
         client_id=os.getenv("SPOTIPY_CLIENT_ID"),
         client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
         redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
-        scope=SCOPES
+        scope=SCOPES,
+        open_browser=False
     ))
 
 
