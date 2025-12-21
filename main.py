@@ -25,7 +25,7 @@ def get_spotify_client():
 def get_playlist_tracks(sp, name):
     playlists = sp.current_user_playlists(limit=50)
     for playlist in playlists['items']:
-        if playlist['name'] == name:
+        if playlist['name'].strip().lower() == name.strip().lower():
             tracks = []
             results = sp.playlist_tracks(playlist['id'])
             tracks.extend(results['items'])
@@ -106,9 +106,15 @@ def main():
     user = sp.current_user()
     print(f"Authenticated as: {user['display_name']}")
 
+    # Debug: show all playlist names
+    playlists = sp.current_user_playlists(limit=50)
+    print("\nYour playlists:")
+    for p in playlists['items']:
+        print(f"  - '{p['name']}'")
+
     main_id, main_tracks = get_playlist_tracks(sp, MAIN_PLAYLIST)
     if not main_id:
-        print(f"Could not find playlist: {MAIN_PLAYLIST}")
+        print(f"\nCould not find playlist: '{MAIN_PLAYLIST}'")
         return
     print(f"Main playlist: {len(main_tracks)} tracks")
 
