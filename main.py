@@ -54,12 +54,15 @@ def get_track_ids(tracks):
 
 def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
     pool = []
+    num_favorites = 0
     for item in all_tracks:
         track = item['track']
         if not track:
             continue
         is_double = track['id'] in double_weight_ids
         is_fav = track['id'] in favorite_ids or is_double
+        if is_fav:
+            num_favorites += 1
         pool.append({
             'id': track['id'],
             'uri': track['uri'],
@@ -69,10 +72,15 @@ def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
             'weight': 1.0
         })
 
+    # Target length: all tracks + extra appearances for favorites
+    num_unique = len(pool)
+    target_length = num_unique + num_favorites * 2
+    print(f"Shuffle: {num_unique} unique tracks, {num_favorites} favorites, target {target_length}", flush=True)
+
     result = []
     last_id = None
 
-    while pool:
+    while pool and len(result) < target_length:
         total = sum(t['weight'] for t in pool)
         r = random.random() * total
         cumulative = 0
