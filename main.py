@@ -15,7 +15,8 @@ if os.path.exists('.cache'):
         print(f"Cache content length: {len(content)}", flush=True)
         print(f"Cache starts with: {content[:50]}...", flush=True)
 
-MAIN_PLAYLIST = "June 2025+ Allstars"
+SOURCE_PLAYLIST = "June 2025+ Allstars"
+OUTPUT_PLAYLIST = "June 2025+ Allstars (Weighted)"
 FAVORITES_PLAYLIST = "Favorites"
 FAVORITE_PLAYLIST = "Favorite"  # 2x weight
 
@@ -113,7 +114,17 @@ def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
     return result
 
 
-def reorder_playlist(sp, playlist_id, uris):
+def get_or_create_playlist(sp, user_id, name):
+    playlists = sp.current_user_playlists(limit=50)
+    for playlist in playlists['items']:
+        if playlist['name'].strip().lower() == name.strip().lower():
+            return playlist['id']
+    # Create if not found
+    new_playlist = sp.user_playlist_create(user_id, name, public=False)
+    return new_playlist['id']
+
+
+def update_playlist(sp, playlist_id, uris):
     sp.playlist_replace_items(playlist_id, [])
     for i in range(0, len(uris), 100):
         sp.playlist_add_items(playlist_id, uris[i:i+100])
@@ -132,11 +143,12 @@ def main():
     for p in playlists['items']:
         print(f"  - '{p['name']}'")
 
-    main_id, main_tracks = get_playlist_tracks(sp, MAIN_PLAYLIST)
-    if not main_id:
-        print(f"\nCould not find playlist: '{MAIN_PLAYLIST}'")
+    # Read from source playlist
+    _, source_tracks = get_playlist_tracks(sp, SOURCE_PLAYLIST)
+    if not source_tracks:
+        print(f"\nCould not find playlist: '{SOURCE_PLAYLIST}'")
         return
-    print(f"Main playlist: {len(main_tracks)} tracks")
+    print(f"Source playlist: {len(source_tracks)} tracks")
 
     _, fav_tracks = get_playlist_tracks(sp, FAVORITES_PLAYLIST)
     if not fav_tracks:
@@ -150,15 +162,17 @@ def main():
     if double_weight_ids:
         print(f"Favorite (2x): {len(double_weight_ids)} tracks")
 
-    shuffled = weighted_shuffle(main_tracks, favorite_ids, double_weight_ids)
+    shuffled = weighted_shuffle(source_tracks, favorite_ids, double_weight_ids)
 
     print(f"\nShuffled order: {len(shuffled)} tracks")
     for i, t in enumerate(shuffled[:15], 1):
         marker = "(2x)" if t['is_double'] else "(1x)" if t['is_fav'] else ""
         print(f"  {i}. {t['name']} {marker}")
 
-    reorder_playlist(sp, main_id, [t['uri'] for t in shuffled])
-    print(f"\nDone. Playlist reordered.")
+    # Write to output playlist (create if needed)
+    output_id = get_or_create_playlist(sp, user['id'], OUTPUT_PLAYLIST)
+    update_playlist(sp, output_id, [t['uri'] for t in shuffled])
+    print(f"\nDone. Output playlist '{OUTPUT_PLAYLIST}' updated.")
 
 
 if __name__ == "__main__":
