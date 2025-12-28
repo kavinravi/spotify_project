@@ -53,7 +53,93 @@ def get_track_ids(tracks):
     return {item['track']['id'] for item in tracks if item['track']}
 
 
-MIN_REPEAT_GAP = 3 # min number of songs before a song can repeat  
+MIN_REPEAT_GAP = 3  # min number of songs before a song can repeat
+
+
+def redistribute_favorites(tracks):
+    """
+    Post-process to spread favorite appearances evenly across the playlist.
+    Instead of clustering at the end, favorites are distributed throughout.
+    """
+    total_len = len(tracks)
+    
+    # Separate non-favorites and collect favorite appearances by ID
+    non_favorites = []
+    favorite_appearances = {}  # id -> list of track dicts
+    
+    for t in tracks:
+        if t['is_fav']:
+            if t['id'] not in favorite_appearances:
+                favorite_appearances[t['id']] = []
+            favorite_appearances[t['id']].append(t)
+        else:
+            non_favorites.append(t)
+    
+    # Calculate evenly-spaced positions for each favorite
+    reserved_positions = {}  # position -> track
+    
+    for fav_id, appearances in favorite_appearances.items():
+        count = len(appearances)
+        # Spread evenly with some randomness to avoid predictable patterns
+        spacing = total_len / count
+        for i, track in enumerate(appearances):
+            # Ideal position with slight random offset
+            ideal_pos = int(spacing * i + spacing / 2)
+            ideal_pos = max(0, min(total_len - 1, ideal_pos))
+            # Find nearest free position
+            offset = 0
+            while True:
+                for try_pos in [ideal_pos + offset, ideal_pos - offset]:
+                    if 0 <= try_pos < total_len and try_pos not in reserved_positions:
+                        reserved_positions[try_pos] = track
+                        break
+                else:
+                    offset += 1
+                    continue
+                break
+    
+    # Build final playlist: favorites at reserved positions, non-favorites fill gaps
+    result = [None] * total_len
+    for pos, track in reserved_positions.items():
+        result[pos] = track
+    
+    non_fav_iter = iter(non_favorites)
+    for i in range(total_len):
+        if result[i] is None:
+            result[i] = next(non_fav_iter, None)
+    
+    # Remove any None entries (shouldn't happen but safety)
+    result = [t for t in result if t is not None]
+    
+    # Final pass: ensure MIN_REPEAT_GAP is respected
+    result = enforce_min_gap(result)
+    
+    return result
+
+
+def enforce_min_gap(tracks):
+    """Swap tracks to ensure no song repeats within MIN_REPEAT_GAP positions."""
+    for i in range(len(tracks)):
+        track_id = tracks[i]['id']
+        # Check if this track appeared in the last MIN_REPEAT_GAP positions
+        for j in range(max(0, i - MIN_REPEAT_GAP), i):
+            if tracks[j]['id'] == track_id:
+                # Find a track to swap with (look ahead for a non-conflicting track)
+                for k in range(i + 1, len(tracks)):
+                    # Check if swapping would be safe
+                    swap_id = tracks[k]['id']
+                    # Make sure the swap target isn't also conflicting at position i
+                    conflict = False
+                    for m in range(max(0, i - MIN_REPEAT_GAP), i):
+                        if tracks[m]['id'] == swap_id:
+                            conflict = True
+                            break
+                    if not conflict:
+                        tracks[i], tracks[k] = tracks[k], tracks[i]
+                        break
+                break
+    return tracks
+
 
 def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
     pool = []
@@ -168,6 +254,7 @@ def main():
         print(f"Favorite (2x): {len(double_weight_ids)} tracks")
 
     shuffled = weighted_shuffle(source_tracks, favorite_ids, double_weight_ids)
+    shuffled = redistribute_favorites(shuffled)
 
     print(f"\nShuffled order: {len(shuffled)} tracks")
     for i, t in enumerate(shuffled[:15], 1):
