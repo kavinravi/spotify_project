@@ -53,6 +53,8 @@ def get_track_ids(tracks):
     return {item['track']['id'] for item in tracks if item['track']}
 
 
+MIN_REPEAT_GAP = 3 # min number of songs before a song can repeat  
+
 def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
     pool = []
     num_favorites = 0
@@ -79,7 +81,7 @@ def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
     print(f"Shuffle: {num_unique} unique tracks, {num_favorites} favorites, target {target_length}", flush=True)
 
     result = []
-    last_id = None
+    recent_ids = []  # Track last N song IDs to enforce minimum gap
 
     while pool and len(result) < target_length:
         total = sum(t['weight'] for t in pool)
@@ -94,12 +96,15 @@ def weighted_shuffle(all_tracks, favorite_ids, double_weight_ids):
 
         selected = pool.pop(idx)
 
-        if selected['id'] == last_id and pool:
+        # Check if this song was played too recently
+        if selected['id'] in recent_ids and pool:
             pool.append(selected)
             continue
 
         result.append(selected)
-        last_id = selected['id']
+        recent_ids.append(selected['id'])
+        if len(recent_ids) > MIN_REPEAT_GAP:
+            recent_ids.pop(0)
 
         if selected['is_fav']:
             pool.append({
