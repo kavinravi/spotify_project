@@ -9,11 +9,6 @@ load_dotenv()
 
 print("Script starting...", flush=True)
 print(f"Cache file exists: {os.path.exists('.cache')}", flush=True)
-if os.path.exists('.cache'):
-    with open('.cache', 'r') as f:
-        content = f.read()
-        print(f"Cache content length: {len(content)}", flush=True)
-        print(f"Cache starts with: {content[:50]}...", flush=True)
 
 SOURCE_PLAYLIST = "June 2025+ Allstars"
 OUTPUT_PLAYLIST = "June 2025+ Allstars (Weighted)"
